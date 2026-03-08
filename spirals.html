@@ -6,7 +6,18 @@
 <title>Schrödinger Spirals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+window.MathJax = {
+  startup: {
+    ready() {
+      MathJax.startup.defaultReady();
+      MathJax.startup.promise.then(() => {
+        document.querySelectorAll('.canvas-label, .controls, .scenarios').forEach(el => el.classList.add('mathjax-ready'));
+      });
+    }
+  }
+};
+</script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
   :root {
@@ -48,7 +59,7 @@
       margin-left: auto;
       margin-right: auto;
     }
-    h1, .subtitle {
+    h1 {
       max-width: none;
     }
     .controls, .scenarios {
@@ -84,23 +95,12 @@
   }
 
   h1 {
-    font-family: var(--serif);
     font-weight: 600;
     font-size: clamp(2rem, 3vw, 3rem);
     color: var(--text-bright);
     letter-spacing: -0.02em;
     line-height: 1.2;
     margin-bottom: 0.3em;
-    text-align: center;
-  }
-
-  .subtitle {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 2.5rem;
     text-align: center;
   }
 
@@ -118,15 +118,6 @@
     font-size: 0.85em;
     color: var(--accent);
     white-space: nowrap;
-  }
-
-  .section-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
   }
 
   /* === Visualisation container === */
@@ -344,6 +335,30 @@
     text-underline-offset: 2px;
   }
 
+  .page > *:not(.viz-wrap) {
+    animation: fadeIn 1s ease 0.3s both;
+  }
+
+  .canvas-label, .controls, .scenarios {
+    opacity: 0;
+    transition: opacity 1.3s ease;
+  }
+
+  .canvas-label * {
+    animation: none !important;
+  }
+
+  .canvas-label.mathjax-ready,
+  .controls.mathjax-ready,
+  .scenarios.mathjax-ready {
+    opacity: 1;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   /* === Responsive === */
   @media (max-width: 600px) {
     .page { padding: 2rem 1rem 4rem; }
@@ -439,7 +454,7 @@ const N = 4096;
 const L = 80;
 const dx = L / N;
 const dt = 0.0002;
-const BASE_STEPS = 50;
+const SIM_TIME_PER_SECOND = 0.15; // sim-time units per wall-second at 1× speed
 const VIEW_MIN = -4, VIEW_MAX = 4;
 
 function linspace(a, b, n) {
@@ -625,7 +640,6 @@ function drawComplex() {
   cCtx.beginPath(); cCtx.moveTo(0,cy); cCtx.lineTo(W,cy); cCtx.stroke();
   cCtx.beginPath(); cCtx.moveTo(cx,0); cCtx.lineTo(cx,H); cCtx.stroke();
 
-
   // Find visible range
   const th2=(initMax*0.005)**2;
   let iS=iVS, iE=iVE;
@@ -634,10 +648,9 @@ function drawComplex() {
   iS=Math.max(iVS,iS-3); iE=Math.min(iVE,iE+3);
 
   // Draw spiral
-  const seg=1;
   cCtx.lineWidth=2;
-  for(let i=iS;i<iE;i+=seg){
-    const jE=Math.min(i+seg+1,iE+1);
+  for(let i=iS;i<iE;i++){
+    const jE=Math.min(i+2,iE+1);
     cCtx.strokeStyle=posColor(xGrid[i],0.85);
     cCtx.beginPath();
     for(let j=i;j<jE;j++){
@@ -655,7 +668,6 @@ function drawComplex() {
     const px=cx+re[idx]*scale, py=cy-im[idx]*scale;
     cCtx.fillStyle=posColor(xv,1);
     cCtx.beginPath(); cCtx.arc(px,py,3.5,0,Math.PI*2); cCtx.fill();
-    cCtx.fillStyle=posColor(xv,0.65);
   });
 }
 
@@ -708,12 +720,10 @@ function drawDensity() {
   const prob=new Float64Array(iVE-iVS+1);
   for(let i=iVS;i<=iVE;i++) prob[i-iVS]=re[i]**2+im[i]**2;
   const ps=1/initPMax;
-  const seg=1;
 
   dCtx.lineWidth=2;
-  for(let i=iVS;i<iVE;i+=seg){
-    const jE=Math.min(i+seg,iVE);
-    const col=posColor(xGrid[i],1);
+  for(let i=iVS;i<iVE;i++){
+    const jE=Math.min(i+1,iVE);
 
     dCtx.fillStyle=posColor(xGrid[i],0.12);
     dCtx.beginPath(); dCtx.moveTo(toX(i),toY(0));
@@ -737,10 +747,16 @@ function drawDensity() {
 }
 
 // === ANIMATION LOOP ===
-function tick() {
+let lastFrameTime = null;
+
+function tick(now) {
+  const wallDelta = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, 0.05) : 0;
+  lastFrameTime = now;
+
   if (direction !== 0 && state) {
     const rev = direction < 0;
-    const steps = Math.max(1, Math.round(BASE_STEPS * speedMul));
+    const simDelta = SIM_TIME_PER_SECOND * speedMul * wallDelta;
+    const steps = Math.max(1, Math.round(simDelta / dt));
     const {re,im} = state;
     for (let s=0;s<steps;s++) {
       step(re,im,phases,rev);
