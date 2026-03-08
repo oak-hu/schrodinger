@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schrödinger Spirals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0b0b10;
+    --bg-card: #0f0f16;
+    --border: #1c1c2e;
+    --text: #c4c4d8;
+    --text-dim: #6a6a82;
+    --text-bright: #e8e8f4;
+    --accent: #5ebbf7;
+    --accent-dim: rgba(94,187,247,0.15);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  @media (min-width: 960px) {
+    .page {
+      max-width: min(95vw, 1400px);
+    }
+    .prose, .credit, .sep {
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1, .subtitle {
+      max-width: none;
+    }
+    .controls, .scenarios {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .transport-row {
+      max-width: 560px;
+      gap: 16px;
+    }
+    .slider-wrap {
+      width: 360px;
+    }
+    .slider-labels {
+      font-size: 1rem;
+    }
+    .btn-reset {
+      width: 48px;
+      height: 48px;
+      font-size: 1.4rem;
+    }
+    .time-display {
+      font-size: 0.8rem;
+    }
+    .scenarios {
+      gap: 10px;
+    }
+    .scenario-btn {
+      font-size: 0.75rem;
+      padding: 10px 10px;
+    }
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2rem, 3vw, 3rem);
+    color: var(--text-bright);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 0.3em;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .prose {
+    margin-bottom: 2rem;
+    font-size: 1.05rem;
+  }
+
+  .prose p { margin-bottom: 1em; }
+
+  .prose em { font-style: italic; color: var(--text-bright); }
+
+  .math {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  /* === Visualisation container === */
+  .viz-wrap {
+    margin: 2.5rem 0;
+  }
+
+  .canvas-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .canvas-cell {
+    min-width: 0;
+    width: 80%;
+  }
+
+  .canvas-label {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  /* Desktop: side-by-side 1/3 + 2/3 */
+  @media (min-width: 960px) {
+    .canvas-row {
+      flex-direction: row;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    .canvas-cell {
+      width: auto;
+    }
+    .canvas-cell-complex {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .canvas-cell-density {
+      flex: 2 1 0;
+      min-width: 0;
+    }
+  }
+
+  /* === Controls === */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+  }
+
+  .transport-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 60px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .transport-row > :nth-child(1) { justify-self: end; }
+  .transport-row > :nth-child(2) { justify-self: center; }
+  .transport-row > :nth-child(3) { justify-self: start; }
+
+  .slider-wrap {
+    width: 260px;
+  }
+
+  .speed-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(94,187,247,0.3);
+  }
+
+  .speed-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .slider-labels span {
+    text-align: center;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .slider-labels span:hover { color: var(--text); }
+  .slider-labels span.active-tick { color: var(--accent); }
+
+  .btn-reset {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .btn-reset:hover { border-color: #2e2e48; color: var(--text); }
+
+  .time-display {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* === Scenario buttons === */
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .scenario-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 8px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .scenario-btn:hover { border-color: #2e2e48; color: var(--text); }
+
+  .scenario-btn.active {
+    background: var(--accent-dim);
+    border-color: rgba(94,187,247,0.35);
+    color: var(--accent);
+  }
+
+  /* === Separator === */
+  .sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* === Footer === */
+  .credit {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 3rem;
+    letter-spacing: 0.04em;
+  }
+
+  .credit a {
+    color: var(--text-dim);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* === Responsive === */
+  @media (max-width: 600px) {
+    .page { padding: 2rem 1rem 4rem; }
+    .scenarios { grid-template-columns: repeat(2, 1fr); }
+    .slider-wrap { width: 200px; }
+    .prose { font-size: 0.95rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Schrödinger Spirals</h1>
+
+  <!-- Visualisation -->
+  <div class="viz-wrap">
+    <div class="canvas-row">
+      <div class="canvas-cell canvas-cell-complex">
+        <canvas id="complex-canvas"></canvas>
+        <div class="canvas-label">Complex values \(\psi(t)(x)\) for \(x\in[-1,1]\)</div>
+      </div>
+      <div class="canvas-cell canvas-cell-density">
+        <canvas id="density-canvas"></canvas>
+        <div class="canvas-label">Densities \(|\psi(x)|^2\) and potential energies for \(x\in[-1,1]\)</div>
+      </div>
+    </div>
+
+    <!-- Scenarios -->
+    <div class="scenarios">
+      <button class="scenario-btn" data-scenario="free">Free particle</button>
+      <button class="scenario-btn active" data-scenario="harmonic">Harmonic oscillation</button>
+      <button class="scenario-btn" data-scenario="barrier">Quantum tunnelling</button>
+      <button class="scenario-btn" data-scenario="well">Trapped in a box</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="transport-row">
+        <button class="btn-reset" id="btn-reset" title="Reset">↺</button>
+        <div class="slider-wrap">
+          <input type="range" class="speed-slider" id="speed-slider" min="-1" max="1" step="0.5" value="0">
+          <div class="slider-labels">
+            <span data-val="-1">⏪︎</span>
+            <span data-val="-0.5">◀︎</span>
+            <span data-val="0" class="active-tick">❚❚</span>
+            <span data-val="0.5">▶︎</span>
+            <span data-val="1">⏩︎</span>
+          </div>
+        </div>
+        <div class="time-display" id="time-display">t = 0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      We visualise the quantum mechanics of a particle that lives on the real line <span class="math">\(\mathbb R\)</span>.
+    </p>
+    <p>  
+      The <em>wavefunction</em> <span class="math">\(\psi:\mathbb R\to(\mathbb R\to \mathbb C)\)</span> maps each time <span class="math">\(t\)</span> to a <em>state</em> <span class="math">\(\psi(t): \mathbb R \to \mathbb C\)</span>, which in turn assigns a value in the complex plane <span class="math">\(\mathbb C\)</span> for each location in <span class="math">\(\mathbb R\)</span>. The squared magnitude <span class="math">\(|\psi(t)(x)|^2\)</span> of the value assigned to a location <span class="math">\(x\)</span> represents the particle's density there, such that integrating over a region of <span class="math">\(\mathbb R\)</span> and normalising gives the probability of measuring the particle in that region. The wavefunction must then, more specifically, map each time to an element of the Hilbert space <span class="math">\(L^2(\mathbb R, \mathbb C)\)</span> of <em>square-integrable functions</em> from <span class="math">\(\mathbb R\)</span> to <span class="math">\(\mathbb C\)</span>; this Hilbert state is our <em>state space</em>.
+    </p>
+    <p>
+      For any state, we can draw a path (call it a "Schrödinger spiral") through the complex plane by plotting the value assigned by that state to each location in <span class="math">\(\mathbb R\)</span>. Typically, this path "starts" and "ends" at zero.
+    </p>
+    <p>
+      The Schrödinger equation governs how the value (in state space) of <span class="math">\(\psi\)</span> changes over time:
+    </p>
+    <p style="text-align:center; font-size:1.1em; margin: 1.2em 0;">
+      <span class="math">\[\psi'(t) = i\left(\frac{\hbar(\psi(t))''}{2m} - \frac{ V \cdot \psi(t)}{\hbar}\right)\]</span>
+    </p>
+    <p>
+      In effect, each state <span class="math">\(\psi(t)\)</span> moves to <span class="math">\(\psi(t+\varepsilon)\)</span> by rotating in the state space, at a rate which depends on the spatial concavity of the state <span class="math">\(\psi(t)\)</span>, and the potential energy <span class="math">\(V:\mathbb R\to\mathbb R\)</span>. Thus, the wavefunction is Markovian in the sense that the history preceding a state does not affect how that state will evolve. But unlike with real-valued <em>diffusion</em>, the <em>preceding</em> states are also fully determined by the present state!
+    </p>
+    <p>
+      The first animation shows how states evolves by plotting their Schrödinger spirals <span class="math">\(\psi(t)([-1,1])\)</span>. The second animation shows how the density <span class="math">\(|\psi(t)[(x)]|^2\)</span> of the particle over the region <span class="math">\([-1,1]\subset \mathbb R\)</span> changes over time.
+    </p>
+    <p>
+      In the free particle setting, this looks like ordinary diffusion; but watch the weird quantum effects that emerge with different potential energy landscapes. You can also run time backwards: the state of the wavefunction at given point in time uniquely determines both past and future states.
+    </p>
+  </div>
+
+  <hr class="sep">
+
+  <div class="credit">
+    Built primarily by <a href="https://claude.ai">Claude</a> (Anthropic), written primarily by Oak · March 2026
+  </div>
+
+</div>
+
+<script>
+// === SIMULATION ENGINE ===
+const N = 4096;
+const L = 80;
+const dx = L / N;
+const dt = 0.0002;
+const BASE_STEPS = 50;
+const VIEW_MIN = -4, VIEW_MAX = 4;
+
+function linspace(a, b, n) {
+  const arr = new Float64Array(n);
+  for (let i = 0; i < n; i++) arr[i] = a + (b - a) * i / (n - 1);
+  return arr;
+}
+const xGrid = linspace(-L/2, L/2, N);
+
+function fft(re, im, invert) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = 2*Math.PI/len*(invert?-1:1);
+    const wR=Math.cos(ang), wI=Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cR=1, cI=0;
+      for (let j = 0; j < len/2; j++) {
+        const uR=re[i+j], uI=im[i+j];
+        const vR=re[i+j+len/2]*cR-im[i+j+len/2]*cI;
+        const vI=re[i+j+len/2]*cI+im[i+j+len/2]*cR;
+        re[i+j]=uR+vR; im[i+j]=uI+vI;
+        re[i+j+len/2]=uR-vR; im[i+j+len/2]=uI-vI;
+        const nc=cR*wR-cI*wI; cI=cR*wI+cI*wR; cR=nc;
+      }
+    }
+  }
+  if (invert) { for (let i=0;i<n;i++){re[i]/=n;im[i]/=n;} }
+}
+
+function makeGaussian(x0, p0, sigma) {
+  const re=new Float64Array(N), im=new Float64Array(N);
+  let norm=0;
+  for (let i=0;i<N;i++) {
+    const x=xGrid[i], env=Math.exp(-((x-x0)**2)/(2*sigma**2));
+    re[i]=env*Math.cos(p0*x); im[i]=env*Math.sin(p0*x);
+    norm+=re[i]**2+im[i]**2;
+  }
+  norm=Math.sqrt(norm*dx);
+  for (let i=0;i<N;i++){re[i]/=norm;im[i]/=norm;}
+  return {re,im};
+}
+
+function getPotential(type) {
+  const V=new Float64Array(N);
+  if (type==="harmonic") { const w=2.5; for(let i=0;i<N;i++) V[i]=0.5*w*w*xGrid[i]**2; }
+  else if (type==="barrier") { for(let i=0;i<N;i++){if(Math.abs(xGrid[i])<0.25) V[i]=25;} }
+  else if (type==="well") { for(let i=0;i<N;i++){if(Math.abs(xGrid[i])>=2) V[i]=30;} }
+  return V;
+}
+
+function getInitState(type) {
+  if (type==="harmonic") return makeGaussian(-1,0,0.25);
+  if (type==="barrier") return makeGaussian(-1.7,3.25,0.6);
+  return makeGaussian(-1.5,4,0.6);
+}
+
+function makePhases(V) {
+  const dk=2*Math.PI/L;
+  const kRe=new Float64Array(N),kIm=new Float64Array(N),kImN=new Float64Array(N);
+  const vRe=new Float64Array(N),vIm=new Float64Array(N),vImN=new Float64Array(N);
+  for (let i=0;i<N;i++) {
+    const k=i<N/2?i*dk:(i-N)*dk, kp=-k*k*dt;
+    kRe[i]=Math.cos(kp); kIm[i]=Math.sin(kp); kImN[i]=-kIm[i];
+    const vp=-V[i]*dt*0.5;
+    vRe[i]=Math.cos(vp); vIm[i]=Math.sin(vp); vImN[i]=-vIm[i];
+  }
+  return {kRe,kIm,kImN,vRe,vIm,vImN};
+}
+
+function applyPhase(re,im,pR,pI) {
+  for(let i=0;i<N;i++){const a=re[i],b=im[i];re[i]=a*pR[i]-b*pI[i];im[i]=a*pI[i]+b*pR[i];}
+}
+
+function step(re,im,ph,rev) {
+  const vI=rev?ph.vImN:ph.vIm, kI=rev?ph.kImN:ph.kIm;
+  applyPhase(re,im,ph.vRe,vI);
+  fft(re,im,false);
+  applyPhase(re,im,ph.kRe,kI);
+  fft(re,im,true);
+  applyPhase(re,im,ph.vRe,vI);
+}
+
+// === COLOUR ===
+function posColor(x, alpha) {
+  const t = Math.max(0, Math.min(1, (x+3)/6));
+  return `hsla(${t*270},85%,60%,${alpha})`;
+}
+
+function xToLabel(x) {
+  const v = x * 0.25; // VIEW coords -> display coords (4 -> 2)
+  const r = Math.round(v*8)/8;
+  return r%1===0 ? r.toFixed(0) : r.toFixed(1);
+}
+
+// === STATE ===
+let scenario = "free";
+let direction = 0; // -1, 0, 1
+let speedMul = 0;
+let time = 0;
+let state, phases, initMax, initPMax;
+
+function initSim(sc) {
+  scenario = sc;
+  const V = getPotential(sc);
+  const {re,im} = getInitState(sc);
+  phases = makePhases(V);
+  let mA=0, mP=0;
+  for(let i=0;i<N;i++){const a=Math.sqrt(re[i]**2+im[i]**2),p=re[i]**2+im[i]**2;if(a>mA)mA=a;if(p>mP)mP=p;}
+  initMax=mA; initPMax=mP;
+  state={re,im,V};
+  time=0;
+  direction=0;
+  speedMul=0;
+  document.getElementById('time-display').textContent='t = 0.00';
+}
+
+// === CANVAS SETUP ===
+const cCanvas = document.getElementById('complex-canvas');
+const dCanvas = document.getElementById('density-canvas');
+const cCtx = cCanvas.getContext('2d');
+const dCtx = dCanvas.getContext('2d');
+
+function sizeCanvases() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const isSideBySide = window.innerWidth >= 960;
+
+  const cW = cCanvas.parentElement.clientWidth;
+  const dW = dCanvas.parentElement.clientWidth;
+
+  if (isSideBySide) {
+    // Side-by-side: complex canvas square, density matches height
+    const cH = cW;
+    cCanvas.width = cW * dpr;
+    cCanvas.height = cH * dpr;
+    cCanvas.style.height = cH + 'px';
+    cCtx.setTransform(dpr,0,0,dpr,0,0);
+
+    const dH = cH;
+    dCanvas.width = dW * dpr;
+    dCanvas.height = dH * dpr;
+    dCanvas.style.height = dH + 'px';
+    dCtx.setTransform(dpr,0,0,dpr,0,0);
+  } else {
+    // Stacked: both canvases 1:2 aspect ratio (height = width/2)
+    const h = Math.round(cW / 2);
+
+    cCanvas.width = cW * dpr;
+    cCanvas.height = h * dpr;
+    cCanvas.style.height = h + 'px';
+    cCtx.setTransform(dpr,0,0,dpr,0,0);
+
+    dCanvas.width = dW * dpr;
+    dCanvas.height = h * dpr;
+    dCanvas.style.height = h + 'px';
+    dCtx.setTransform(dpr,0,0,dpr,0,0);
+  }
+}
+
+// === DRAWING ===
+const iVS = Math.max(0, Math.floor((VIEW_MIN+L/2)/dx));
+const iVE = Math.min(N-1, Math.ceil((VIEW_MAX+L/2)/dx));
+
+function drawComplex() {
+  const W = cCanvas.width / (Math.min(window.devicePixelRatio||1,2));
+  const H = cCanvas.height / (Math.min(window.devicePixelRatio||1,2));
+  const cx=W/2, cy=H/2;
+  const sq = Math.min(W,H);
+  const scale = sq * 0.32;
+  const {re,im} = state;
+
+  cCtx.fillStyle = '#0f0f16';
+  cCtx.fillRect(0,0,W,H);
+
+  // Axes
+  cCtx.strokeStyle = '#1c1c2e';
+  cCtx.lineWidth = 1;
+  cCtx.beginPath(); cCtx.moveTo(0,cy); cCtx.lineTo(W,cy); cCtx.stroke();
+  cCtx.beginPath(); cCtx.moveTo(cx,0); cCtx.lineTo(cx,H); cCtx.stroke();
+
+
+  // Find visible range
+  const th2=(initMax*0.005)**2;
+  let iS=iVS, iE=iVE;
+  for(let i=iVS;i<=iVE;i++){if(re[i]*re[i]+im[i]*im[i]>th2){iS=i;break;}}
+  for(let i=iVE;i>=iVS;i--){if(re[i]*re[i]+im[i]*im[i]>th2){iE=i;break;}}
+  iS=Math.max(iVS,iS-3); iE=Math.min(iVE,iE+3);
+
+  // Draw spiral
+  const seg=1;
+  cCtx.lineWidth=2;
+  for(let i=iS;i<iE;i+=seg){
+    const jE=Math.min(i+seg+1,iE+1);
+    cCtx.strokeStyle=posColor(xGrid[i],0.85);
+    cCtx.beginPath();
+    for(let j=i;j<jE;j++){
+      const px=cx+re[j]*scale, py=cy-im[j]*scale;
+      j===i?cCtx.moveTo(px,py):cCtx.lineTo(px,py);
+    }
+    cCtx.stroke();
+  }
+
+  // Landmarks
+  const lm=[-4,-2,0,2,4];
+  lm.forEach(xv=>{
+    const idx=Math.round((xv+L/2)/dx);
+    if(idx<0||idx>=N)return;
+    const px=cx+re[idx]*scale, py=cy-im[idx]*scale;
+    cCtx.fillStyle=posColor(xv,1);
+    cCtx.beginPath(); cCtx.arc(px,py,3.5,0,Math.PI*2); cCtx.fill();
+    cCtx.fillStyle=posColor(xv,0.65);
+  });
+}
+
+function drawDensity() {
+  const W = dCanvas.width / (Math.min(window.devicePixelRatio||1,2));
+  const H = dCanvas.height / (Math.min(window.devicePixelRatio||1,2));
+  const m={l:40,r:15,t:15,b:28};
+  const pw=W-m.l-m.r, ph=H-m.t-m.b;
+  const {re,im,V} = state;
+
+  function toX(i){return m.l+((i-iVS)/(iVE-iVS))*pw;}
+  function toY(v){return m.t+ph-v*ph;}
+
+  dCtx.fillStyle='#0f0f16';
+  dCtx.fillRect(0,0,W,H);
+
+  // Grid
+  dCtx.strokeStyle='#1c1c2e'; dCtx.lineWidth=1;
+  for(let g=0;g<=4;g++){const y=m.t+(g/4)*ph;dCtx.beginPath();dCtx.moveTo(m.l,y);dCtx.lineTo(W-m.r,y);dCtx.stroke();}
+
+  // Ticks
+  dCtx.fillStyle='#3a3a55'; dCtx.font='12px JetBrains Mono,monospace';
+  for(let v=VIEW_MIN;v<=VIEW_MAX;v+=4){
+    const i=Math.round((v+L/2)/dx);
+    if(i>=iVS&&i<=iVE) dCtx.fillText(xToLabel(v),toX(i),H-m.b+16);
+  }
+
+  // V(x) in grey — scale so max V fits comfortably with label
+  let maxVinView=0;
+  for(let i=iVS;i<=iVE;i++){if(V[i]>maxVinView)maxVinView=V[i];}
+  if(maxVinView>0){
+    const vScale = 0.85 / maxVinView;
+    dCtx.save();
+    dCtx.beginPath();
+    dCtx.rect(m.l, m.t, pw, ph);
+    dCtx.clip();
+    dCtx.fillStyle='rgba(255,255,255,0.03)';
+    dCtx.strokeStyle='rgba(255,255,255,0.15)';
+    dCtx.lineWidth=1;
+    dCtx.beginPath(); dCtx.moveTo(toX(iVS),toY(0));
+    for(let i=iVS;i<=iVE;i++) dCtx.lineTo(toX(i),toY(V[i]*vScale));
+    dCtx.lineTo(toX(iVE),toY(0)); dCtx.closePath(); dCtx.fill();
+    dCtx.beginPath();
+    for(let i=iVS;i<=iVE;i++){const y=toY(V[i]*vScale);i===iVS?dCtx.moveTo(toX(i),y):dCtx.lineTo(toX(i),y);}
+    dCtx.stroke();
+    dCtx.restore();
+  }
+
+  // |ψ|²
+  const prob=new Float64Array(iVE-iVS+1);
+  for(let i=iVS;i<=iVE;i++) prob[i-iVS]=re[i]**2+im[i]**2;
+  const ps=1/initPMax;
+  const seg=1;
+
+  dCtx.lineWidth=2;
+  for(let i=iVS;i<iVE;i+=seg){
+    const jE=Math.min(i+seg,iVE);
+    const col=posColor(xGrid[i],1);
+
+    dCtx.fillStyle=posColor(xGrid[i],0.12);
+    dCtx.beginPath(); dCtx.moveTo(toX(i),toY(0));
+    for(let j=i;j<=jE;j++) dCtx.lineTo(toX(j),toY(prob[j-iVS]*ps*0.6));
+    dCtx.lineTo(toX(jE),toY(0)); dCtx.closePath(); dCtx.fill();
+
+    dCtx.strokeStyle=posColor(xGrid[i],0.9);
+    dCtx.beginPath();
+    for(let j=i;j<=jE;j++){const px=toX(j),py=toY(prob[j-iVS]*ps*0.6);j===i?dCtx.moveTo(px,py):dCtx.lineTo(px,py);}
+    dCtx.stroke();
+  }
+
+  // Landmarks
+  const lm=[-4,-2,0,2,4];
+  lm.forEach(xv=>{
+    const idx=Math.round((xv+L/2)/dx);
+    if(idx<iVS||idx>iVE)return;
+    dCtx.fillStyle=posColor(xv,1);
+    dCtx.beginPath(); dCtx.arc(toX(idx),toY(prob[idx-iVS]*ps*0.6),2.5,0,Math.PI*2); dCtx.fill();
+  });
+}
+
+// === ANIMATION LOOP ===
+function tick() {
+  if (direction !== 0 && state) {
+    const rev = direction < 0;
+    const steps = Math.max(1, Math.round(BASE_STEPS * speedMul));
+    const {re,im} = state;
+    for (let s=0;s<steps;s++) {
+      step(re,im,phases,rev);
+      time += rev ? -dt : dt;
+      // Absorbing boundary
+      for(let i=0;i<N;i++){
+        const ed=Math.min(xGrid[i]-xGrid[0],xGrid[N-1]-xGrid[i]);
+        if(ed<10){const d=ed/10,f=d*d*(3-2*d);re[i]*=f;im[i]*=f;}
+      }
+    }
+    document.getElementById('time-display').textContent = 't = ' + time.toFixed(2);
+  }
+  drawComplex();
+  drawDensity();
+  requestAnimationFrame(tick);
+}
+
+// === TRANSPORT CONTROLS ===
+const slider = document.getElementById('speed-slider');
+const tickLabels = document.querySelectorAll('.slider-labels span');
+
+function applySpeed(val) {
+  val = parseFloat(val);
+  slider.value = val;
+  if (val === 0) {
+    direction = 0;
+    speedMul = 0;
+  } else {
+    direction = val > 0 ? 1 : -1;
+    speedMul = Math.abs(val);
+  }
+  // Highlight active tick
+  tickLabels.forEach(t => {
+    t.classList.toggle('active-tick', parseFloat(t.dataset.val) === val);
+  });
+}
+
+slider.addEventListener('input', e => applySpeed(e.target.value));
+
+// Clickable tick labels
+tickLabels.forEach(t => {
+  t.addEventListener('click', () => applySpeed(t.dataset.val));
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  initSim(scenario);
+  applySpeed(0);
+});
+
+// Scenario buttons
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    initSim(btn.dataset.scenario);
+    applySpeed(0);
+  });
+});
+
+// === INIT ===
+window.addEventListener('resize', sizeCanvases);
+sizeCanvases();
+initSim('harmonic');
+applySpeed(0.5);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
