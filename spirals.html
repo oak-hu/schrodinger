@@ -621,7 +621,7 @@ function drawComplex() {
   iS=Math.max(iVS,iS-3); iE=Math.min(iVE,iE+3);
 
   // Draw spiral
-  cCtx.lineWidth=2;
+  cCtx.lineWidth=Math.max(0.4, W / 250);
   for(let i=iS;i<iE;i++){
     const jE=Math.min(i+2,iE+1);
     cCtx.strokeStyle=posColor(xGrid[i],0.85);
@@ -640,7 +640,7 @@ function drawComplex() {
     if(idx<0||idx>=N)return;
     const px=cx+re[idx]*scale, py=cy-im[idx]*scale;
     cCtx.fillStyle=posColor(xv,1);
-    cCtx.beginPath(); cCtx.arc(px,py,3.5,0,Math.PI*2); cCtx.fill();
+    cCtx.beginPath(); cCtx.arc(px,py,Math.max(0.5, W / 200),0,Math.PI*2); cCtx.fill();
   });
 }
 
@@ -694,7 +694,7 @@ function drawDensity() {
   for(let i=iVS;i<=iVE;i++) prob[i-iVS]=re[i]**2+im[i]**2;
   const ps=1/initPMax;
 
-  dCtx.lineWidth=2;
+  dCtx.lineWidth=Math.max(0.4, W / 500);
   for(let i=iVS;i<iVE;i++){
     const jE=Math.min(i+1,iVE);
 
@@ -715,7 +715,7 @@ function drawDensity() {
     const idx=Math.round((xv+L/2)/dx);
     if(idx<iVS||idx>iVE)return;
     dCtx.fillStyle=posColor(xv,1);
-    dCtx.beginPath(); dCtx.arc(toX(idx),toY(prob[idx-iVS]*ps*0.6),2.5,0,Math.PI*2); dCtx.fill();
+    dCtx.beginPath(); dCtx.arc(toX(idx),toY(prob[idx-iVS]*ps*0.6),Math.max(0.5, W / 400),0,Math.PI*2); dCtx.fill();
   });
 }
 
