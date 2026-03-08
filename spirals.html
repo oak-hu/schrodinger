@@ -6,18 +6,6 @@
 <title>Schrödinger Spirals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-window.MathJax = {
-  startup: {
-    ready() {
-      MathJax.startup.defaultReady();
-      MathJax.startup.promise.then(() => {
-        document.querySelectorAll('.canvas-label, .controls, .scenarios').forEach(el => el.classList.add('mathjax-ready'));
-      });
-    }
-  }
-};
-</script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
   :root {
@@ -144,6 +132,7 @@ window.MathJax = {
     color: var(--text-dim);
     letter-spacing: 0.06em;
     margin-bottom: 6px;
+    animation: fadeIn 0.6s ease 0.3s both;
   }
 
   canvas {
@@ -336,22 +325,7 @@ window.MathJax = {
   }
 
   .page > *:not(.viz-wrap) {
-    animation: fadeIn 1s ease 0.3s both;
-  }
-
-  .canvas-label, .controls, .scenarios {
-    opacity: 0;
-    transition: opacity 1.3s ease;
-  }
-
-  .canvas-label * {
-    animation: none !important;
-  }
-
-  .canvas-label.mathjax-ready,
-  .controls.mathjax-ready,
-  .scenarios.mathjax-ready {
-    opacity: 1;
+    animation: fadeIn 0.6s ease 0.3s both;
   }
 
   @keyframes fadeIn {
@@ -385,33 +359,35 @@ window.MathJax = {
         <div class="canvas-label">Densities \(|\psi(x)|^2\) and potential energies for \(x\in[-1,1]\)</div>
       </div>
     </div>
+  </div>
 
-    <!-- Scenarios -->
-    <div class="scenarios">
-      <button class="scenario-btn" data-scenario="free">Free particle</button>
-      <button class="scenario-btn active" data-scenario="harmonic">Harmonic oscillation</button>
-      <button class="scenario-btn" data-scenario="barrier">Quantum tunnelling</button>
-      <button class="scenario-btn" data-scenario="well">Trapped in a box</button>
-    </div>
+  <!-- Scenarios -->
+  <div class="scenarios">
+    <button class="scenario-btn" data-scenario="free">Free particle</button>
+    <button class="scenario-btn active" data-scenario="harmonic">Harmonic oscillation</button>
+    <button class="scenario-btn" data-scenario="barrier">Quantum tunnelling</button>
+    <button class="scenario-btn" data-scenario="well">Trapped in a box</button>
+  </div>
 
-    <!-- Controls -->
-    <div class="controls">
-      <div class="transport-row">
-        <button class="btn-reset" id="btn-reset" title="Reset">↺</button>
-        <div class="slider-wrap">
-          <input type="range" class="speed-slider" id="speed-slider" min="-1" max="1" step="0.5" value="0">
-          <div class="slider-labels">
-            <span data-val="-1">⏪︎</span>
-            <span data-val="-0.5">◀︎</span>
-            <span data-val="0" class="active-tick">❚❚</span>
-            <span data-val="0.5">▶︎</span>
-            <span data-val="1">⏩︎</span>
-          </div>
+  <!-- Controls -->
+  <div class="controls">
+    <div class="transport-row">
+      <button class="btn-reset" id="btn-reset" title="Reset">↺</button>
+      <div class="slider-wrap">
+        <input type="range" class="speed-slider" id="speed-slider" min="-1" max="1" step="0.5" value="0">
+        <div class="slider-labels">
+          <span data-val="-1">⏪︎</span>
+          <span data-val="-0.5">◀︎</span>
+          <span data-val="0" class="active-tick">❚❚</span>
+          <span data-val="0.5">▶︎</span>
+          <span data-val="1">⏩︎</span>
         </div>
-        <div class="time-display" id="time-display">t = 0.00</div>
       </div>
+      <div class="time-display" id="time-display">t = 0.00</div>
     </div>
   </div>
+
+  <hr class="sep">
 
   <div class="prose">
     <p>
@@ -435,15 +411,12 @@ window.MathJax = {
     <p>
       The first animation shows how states evolves by plotting their Schrödinger spirals <span class="math">\(\psi(t)([-1,1])\)</span>. The second animation shows how the density <span class="math">\(|\psi(t)[(x)]|^2\)</span> of the particle over the region <span class="math">\([-1,1]\subset \mathbb R\)</span> changes over time.
     </p>
-    <p>
-      In the free particle setting, this looks like ordinary diffusion; but watch the weird quantum effects that emerge with different potential energy landscapes. You can also run time backwards: the state of the wavefunction at given point in time uniquely determines both past and future states.
-    </p>
   </div>
 
   <hr class="sep">
 
   <div class="credit">
-    Built primarily by <a href="https://claude.ai">Claude</a> (Anthropic), written primarily by Oak · March 2026
+    Built primarily by <a href="https://claude.ai">Claude</a> (Anthropic), design & exposition primarily by Oak Hu · March 2026
   </div>
 
 </div>
