@@ -485,7 +485,7 @@ function getPotential(type) {
 }
 
 function getInitState(type) {
-  if (type==="harmonic") return makeGaussian(-1,0,0.25);
+  if (type==="harmonic" || type==="well") return makeGaussian(-1,0,0.25);
   if (type==="barrier") return makeGaussian(-1.7,3.25,0.6);
   return makeGaussian(-1.5,4,0.6);
 }
